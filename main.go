@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -51,4 +52,22 @@ func main() {
 	<-sc
 
 	dg.Close()
+
+	// Agregar servidor HTTP para health checks
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		})
+
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8000" // Puerto por defecto
+		}
+
+		log.Printf("Iniciando servidor HTTPWEA en puerto %s", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Printf("Error en servidor HTTPWEA: %v", err)
+		}
+	}()
 }
