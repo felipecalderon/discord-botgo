@@ -14,10 +14,11 @@ import (
 )
 
 func main() {
-	// Cargar .env
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error cargando la wea de archivo .env")
+	// cargar .env solo en desarrollo
+	if os.Getenv("ENVIRONMENT") != "production" {
+		if err := godotenv.Load(); err != nil {
+			log.Printf("Wea .env no encontrada, usando weas de entorno del sistema")
+		}
 	}
 
 	token := os.Getenv("DISCORD_TOKEN")
