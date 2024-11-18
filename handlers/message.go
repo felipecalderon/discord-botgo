@@ -12,11 +12,18 @@ import (
 
 type ImageStore struct {
 	Images []string
+	rng    *rand.Rand
 	mu     sync.RWMutex
 }
 
-var Store = &ImageStore{
-	Images: make([]string, 0),
+var Store *ImageStore
+
+// InitializeStore inicializa el store con un generador de números aleatorios
+func InitializeStore(rng *rand.Rand) {
+	Store = &ImageStore{
+		Images: make([]string, 0),
+		rng:    rng,
+	}
 }
 
 func (s *ImageStore) AddImage(url string) {
@@ -34,7 +41,7 @@ func (s *ImageStore) GetRandomImage() (string, error) {
 		return "", fmt.Errorf("no hay imágenes disponibles")
 	}
 
-	return s.Images[rand.Intn(len(s.Images))], nil
+	return s.Images[s.rng.Intn(len(s.Images))], nil
 }
 
 func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {

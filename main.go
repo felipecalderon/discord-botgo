@@ -17,7 +17,12 @@ import (
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	rand.Seed(time.Now().UnixNano())
+
+	// Crear un generador de números aleatorios local
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// Pasar el generador al store de imágenes
+	handlers.InitializeStore(rng)
 
 	token := os.Getenv("DISCORD_TOKEN")
 	if token == "" {
@@ -51,14 +56,23 @@ func main() {
 		if err != nil {
 			log.Printf("Error actualizando estado: %v", err)
 		}
+
+		// Registrar comando slash globalmente
+		cmd := &discordgo.ApplicationCommand{
+			Name:        "imagen",
+			Description: "Muestra una imagen aleatoria del canal monitoreado",
+		}
+
+		_, err = s.ApplicationCommandCreate(s.State.User.ID, "", cmd)
+		if err != nil {
+			log.Printf("Error registrando comando global: %v", err)
+		}
 	})
 
-	// Registrar comando slash
-	cmd := &discordgo.ApplicationCommand{
-		Name:        "imagen",
-		Description: "Muestra una imagen aleatoria del canal monitoreado",
-	}
+	// Agregar handler para mensajes
+	dg.AddHandler(handlers.MessageCreate)
 
+	// Agregar handler para comandos slash
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type == discordgo.InteractionApplicationCommand {
 			if i.ApplicationCommandData().Name == "imagen" {
@@ -73,19 +87,6 @@ func main() {
 		log.Fatalf("Error abriendo conexión: %v", err)
 	}
 	defer dg.Close()
-
-	// Registrar comando en todos los servidores donde está el bot
-	guilds, err := dg.UserGuilds(100, "", "", false)
-	if err != nil {
-		log.Printf("Error obteniendo guilds: %v", err)
-	}
-
-	for _, g := range guilds {
-		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, g.ID, cmd)
-		if err != nil {
-			log.Printf("Error registrando comando en guild %s: %v", g.ID, err)
-		}
-	}
 
 	// Iniciar servidor HTTP para health check
 	go func() {
