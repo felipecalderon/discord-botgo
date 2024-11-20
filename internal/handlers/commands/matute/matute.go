@@ -22,6 +22,10 @@ func (c *MatuteCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCre
 	// Implementación del comando matute
 	strPtr := func(s string) *string { return &s }
 
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	})
+
 	s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 		Content: strPtr("¡Amo los pitos...! digo, los puzzles!"),
 	})
