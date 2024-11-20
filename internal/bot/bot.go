@@ -19,8 +19,8 @@ type Bot struct {
 	cmdHandler *handlers.CommandHandler
 }
 
-func New(cfg *config.Config) (*Bot, error) {
-	session, err := discordgo.New("Bot " + cfg.DiscordToken)
+func New(token string) (*Bot, error) {
+	session, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,6 @@ func New(cfg *config.Config) (*Bot, error) {
 	return &Bot{
 		session:    session,
 		store:      imageStore,
-		config:     cfg,
 		cmdHandler: cmdHandler,
 	}, nil
 }
