@@ -13,9 +13,10 @@ import (
 )
 
 type Bot struct {
-	session *discordgo.Session
-	store   *store.ImageStore
-	config  *config.Config
+	session    *discordgo.Session
+	store      *store.ImageStore
+	config     *config.Config
+	cmdHandler *handlers.CommandHandler
 }
 
 func New(cfg *config.Config) (*Bot, error) {
@@ -26,11 +27,13 @@ func New(cfg *config.Config) (*Bot, error) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	imageStore := store.NewImageStore(rng)
+	cmdHandler := handlers.NewCommandHandler(imageStore)
 
 	return &Bot{
-		session: session,
-		store:   imageStore,
-		config:  cfg,
+		session:    session,
+		store:      imageStore,
+		config:     cfg,
+		cmdHandler: cmdHandler,
 	}, nil
 }
 
@@ -53,36 +56,16 @@ func (b *Bot) Start(ctx context.Context) error {
 func (b *Bot) registerHandlers() {
 	b.session.AddHandler(b.handleReady)
 	b.session.AddHandler(handlers.NewMessageHandler(b.store).Handle)
-	b.session.AddHandler(handlers.NewCommandHandler(b.store).Handle)
+	b.session.AddHandler(b.cmdHandler.Handle)
 }
 
 func (b *Bot) handleReady(s *discordgo.Session, r *discordgo.Ready) {
-	log.Printf("Bot está listo! Conectado como: %v#%v",
+	log.Printf("Bot está listo y corriendo como weon! Conectado como: %v#%v",
 		s.State.User.Username,
 		s.State.User.Discriminator)
 
-	// Registrar comandos
-	b.registerCommands()
-}
-
-func (b *Bot) registerCommands() {
-	commands := []*discordgo.ApplicationCommand{
-		{
-			Name:        "imagen",
-			Description: "Muestra una imagen aleatoria del canal monitoreado",
-		},
-		{
-			Name:        "matute",
-			Description: "GeneralMatute un fan de los puzzles de pitos",
-		},
-	}
-
-	for _, cmd := range commands {
-		_, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, "", cmd)
-		if err != nil {
-			log.Printf("Error registrando comando %s: %v", cmd.Name, err)
-		}
-	}
+	// Registrar comandos usando el CommandHandler
+	b.cmdHandler.RegisterCommands(s)
 }
 
 func (b *Bot) Shutdown() {

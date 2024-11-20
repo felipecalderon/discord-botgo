@@ -1,19 +1,34 @@
 package handlers
 
 import (
+	"discord-bot/internal/handlers/commands"
+	image "discord-bot/internal/handlers/commands/images"
+	"discord-bot/internal/handlers/commands/matute"
 	"discord-bot/internal/store"
-	"fmt"
 	"log"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 type CommandHandler struct {
-	store *store.ImageStore
+	commands map[string]commands.Command
 }
 
 func NewCommandHandler(store *store.ImageStore) *CommandHandler {
-	return &CommandHandler{store: store}
+	h := &CommandHandler{
+		commands: make(map[string]commands.Command),
+	}
+
+	// Registrar comandos
+	h.registerCommand(image.New(store))
+	h.registerCommand(matute.New())
+
+	return h
+}
+
+func (h *CommandHandler) registerCommand(cmd commands.Command) {
+	h.commands[cmd.Name()] = cmd
+	log.Printf("Comando registrado: %s", cmd.Name())
 }
 
 func (h *CommandHandler) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -21,48 +36,22 @@ func (h *CommandHandler) Handle(s *discordgo.Session, i *discordgo.InteractionCr
 		return
 	}
 
-	switch i.ApplicationCommandData().Name {
-	case "imagen":
-		h.handleImageCommand(s, i)
-	case "matute":
-		// Implementar comando matute
+	commandName := i.ApplicationCommandData().Name
+	if command, exists := h.commands[commandName]; exists {
+		command.Handle(s, i)
 	}
 }
 
-func (h *CommandHandler) handleImageCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	strPtr := func(s string) *string { return &s }
+func (h *CommandHandler) RegisterCommands(s *discordgo.Session) {
+	for _, cmd := range h.commands {
+		command := &discordgo.ApplicationCommand{
+			Name:        cmd.Name(),
+			Description: cmd.Description(),
+		}
 
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-	})
-
-	imageURL, err := h.store.GetRandomImage()
-	if err != nil {
-		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Content: strPtr("No hay imágenes disponibles en este momento"),
-		})
-		return
-	}
-
-	embed := &discordgo.MessageEmbed{
-		Title: "¡Toma tu wea ctm!",
-		Image: &discordgo.MessageEmbedImage{
-			URL: imageURL,
-		},
-		Footer: &discordgo.MessageEmbedFooter{
-			Text: fmt.Sprintf("El CTM que pidió esta wea fue %s", i.Member.User.Username),
-		},
-		Color: 0x00ff00,
-	}
-
-	_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-		Embeds: &[]*discordgo.MessageEmbed{embed},
-	})
-
-	if err != nil {
-		log.Printf("Error enviando imagen: %v", err)
-		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Content: strPtr("Ocurrió un error al enviar la imagen"),
-		})
+		_, err := s.ApplicationCommandCreate(s.State.User.ID, "", command)
+		if err != nil {
+			log.Printf("Error registrando comando %s: %v", cmd.Name(), err)
+		}
 	}
 }
