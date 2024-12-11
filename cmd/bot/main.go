@@ -22,7 +22,7 @@ func main() {
 	var cfg *config.Config
 	var err error
 	var port string
-	// Intenta cargar desde archivo de configuración (local)
+	// cargar desde archivo de configuración (local)
 	if _, err := os.Stat("config/config.json"); err == nil {
 		cfg, err = config.LoadConfig("config/config.json")
 		if err != nil {
@@ -30,7 +30,7 @@ func main() {
 		}
 		port = "8000"
 	} else {
-		// Si no existe el archivo, usa variables de entorno (deploy)
+		// Si no existe el archivo, variables de entorno (deploy)
 		token := os.Getenv("DISCORD_TOKEN")
 		channelID := os.Getenv("MONITOR_CHANNEL_ID")
 
