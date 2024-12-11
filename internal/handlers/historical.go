@@ -18,10 +18,10 @@ func LoadHistoricalImages(session *discordgo.Session, imageStore *store.ImageSto
 		for _, attachment := range message.Attachments {
 			if attachment.Width > 0 && attachment.Height > 0 {
 				imageStore.AddImage(attachment.URL)
-				log.Printf("Imagen histórica añadida: %s", attachment.URL)
 			}
 		}
 	}
+	log.Println("Imagenes encontradas: ", len(messages))
 
 	return nil
 }

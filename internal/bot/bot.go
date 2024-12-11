@@ -2,7 +2,7 @@ package bot
 
 import (
 	"context"
-	"discord-bot/internal/config"
+	"discord-bot/config"
 	"discord-bot/internal/handlers"
 	"discord-bot/internal/store"
 	"log"
@@ -19,8 +19,8 @@ type Bot struct {
 	cmdHandler *handlers.CommandHandler
 }
 
-func New(token string) (*Bot, error) {
-	session, err := discordgo.New("Bot " + token)
+func New(config *config.Config) (*Bot, error) {
+	session, err := discordgo.New("Bot " + config.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +32,7 @@ func New(token string) (*Bot, error) {
 	return &Bot{
 		session:    session,
 		store:      imageStore,
+		config:     config,
 		cmdHandler: cmdHandler,
 	}, nil
 }
@@ -49,7 +50,7 @@ func (b *Bot) Start(ctx context.Context) error {
 	}
 
 	// Cargar imágenes históricas
-	return handlers.LoadHistoricalImages(b.session, b.store, b.config.MonitorChannelID, 100)
+	return handlers.LoadHistoricalImages(b.session, b.store, b.config.ChannelID, 100)
 }
 
 func (b *Bot) registerHandlers() {
